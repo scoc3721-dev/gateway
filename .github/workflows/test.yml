@@ -1,0 +1,9 @@
+jobs:
+  test-mtls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run mTLS Curl
+        run: |
+          curl -v --cert client.pem --key key.pem \
+          "https://your-private-space-ingress.com/api"
