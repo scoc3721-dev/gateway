@@ -24,7 +24,7 @@ jobs:
           echo "Scenario: External client attempts to connect without mTLS certs."
           # -v provides verbose output to see the TLS handshake details
           # -k ignores SSL chain issues (useful for self-signed LB certs)
-          curl -v -k -s -o /dev/null -w "%{http_code}" https://your-ingress-url.com/api > status.txt
+          curl -v -k -s -o /dev/null -w "%{http_code}" https://api.eis-poc-gateway.com/api/mtoapi > status.txt
           
           STATUS=$(cat status.txt)
           echo "HTTP Status Received: $STATUS"
@@ -44,4 +44,4 @@ jobs:
           echo "Scenario: External client presents a trusted certificate."
           # Ensure your certs are in the 'certs' folder of your repo
           curl -v -k --cert ./certs/client.pem --key ./certs/client.key \
-          https://your-ingress-url.com/api
+          https://api.eis-poc-gateway.com/api/mtoapi
