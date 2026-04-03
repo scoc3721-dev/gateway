@@ -13,35 +13,33 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Basic DNS & Ping Check
+      - name: Basic DNS Check
         run: |
           echo "Checking if the Anypoint Ingress is reachable..."
-          # Replace with your actual domain
-          nslookup api.eis-poc-gateway.com || echo "DNS Lookup Failed - Check if URL is public"
+          # Verified Domain from Logs: api.eis-poc-gateway.com
+          nslookup api.eis-poc-gateway.com || echo "DNS Lookup Failed"
 
       - name: Test Layer 0 - Unauthorized Access (Hello World)
         run: |
           echo "Scenario: External client attempts to connect without mTLS certs."
-          # -v provides verbose output to see the TLS handshake details
-          # -k ignores SSL chain issues (useful for self-signed LB certs)
-          curl -v -k -s -o /dev/null -w "%{http_code}" https://api.eis-poc-gateway.com/api/mtoapi > status.txt
+          # We use || true because we expect curl to fail with an SSL Alert (Exit Code 56)
+          # We capture the full verbose output to check for the 'certificate required' alert
+          curl -v -k https://api.eis-poc-gateway.com/api/mtoapi 2>&1 | tee curl_output.txt || true
           
-          STATUS=$(cat status.txt)
-          echo "HTTP Status Received: $STATUS"
-          
-          if [[ "$STATUS" == "000" ]]; then
-            echo "SUCCESS: Connection refused (mTLS working as expected)."
-          elif [[ "$STATUS" == "400" ]]; then
-            echo "SUCCESS: Ingress rejected the request for missing cert (HTTP 400)."
+          if grep -q "alert certificate required" curl_output.txt; then
+            echo "SUCCESS: Ingress correctly rejected request with 'TLS alert: certificate required'."
+          elif grep -q "400" curl_output.txt; then
+            echo "SUCCESS: Ingress rejected the request with HTTP 400."
           else
-            echo "WARNING: Received status $STATUS. Is mTLS 'Mandatory' on the LB?"
+            echo "ERROR: The connection was not rejected as expected. Check LB settings."
+            exit 1
           fi
 
       - name: Test Layer 0 - Authorized Access (With Certs)
-        # Only run this if you have uploaded certs to the /certs folder in your repo
+        # This step will run once you upload your certificates to the /certs folder
         continue-on-error: true 
         run: |
           echo "Scenario: External client presents a trusted certificate."
-          # Ensure your certs are in the 'certs' folder of your repo
+          # Ensure client.pem and client.key are in the 'certs' folder
           curl -v -k --cert ./certs/client.pem --key ./certs/client.key \
           https://api.eis-poc-gateway.com/api/mtoapi
