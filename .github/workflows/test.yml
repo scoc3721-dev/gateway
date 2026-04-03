@@ -41,5 +41,7 @@ jobs:
         run: |
           echo "Scenario: External client presents a trusted certificate."
           # Ensure client.pem and client.key are in the 'certs' folder
+          pwd
+          ls -l
           curl -v -k --cert ../.certs/client.pem --key ../.certs/client.key \
           https://api.eis-poc-gateway.com/api/mtoapi
