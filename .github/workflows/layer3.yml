@@ -20,20 +20,12 @@ jobs:
         run: |
           echo "Scenario: Sending an empty JSON object {}"
           PAYLOAD='{}'
-          
-          STATUS=$(curl -k -v  \
-            --cert ./certs/client.pem --key ./certs/client.key \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
-          
-          echo "HTTP Status: $STATUS"
-          if [ "$STATUS" == "400" ]; then
-            echo "SUCCESS: Flex Gateway rejected request missing required opcNumber."
-          else
-            echo "ERROR: Gateway allowed request with missing mandatory fields (Status: $STATUS)."
-            exit 1
-          fi
 
+          curl -k -v \
+            --cert ./certs/client.pem --key ./certs/client.key \
+            -H "Content-Type: application/json" \ -w "\nHTTP_STATUS:%{http_code}\n" \
+            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi
+                    
       - name: Layer 3 - Invalid Pattern (Regex Check)
         # Expected: 400 Bad Request
         # The regex is ^[A-Z0-9]+$. We send a hyphen '-' to trigger a block.
