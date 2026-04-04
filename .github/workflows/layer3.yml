@@ -1,76 +1,97 @@
-name: L3: Message Integrity Schema Validation
+name: "L3: Message Integrity Schema Validation"
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
   push:
     branches: [ main ]
 
 jobs:
-  security-tests:
-    name: Message Integrity Test
+  schema-validation:
+    name: "Schema Integrity Test"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Layer 3 - Schema Validation (Alphanumeric Pattern)
+      - name: Layer 3 - Missing Mandatory Field (Empty Body)
+        # Expected: 400 Bad Request
+        # opcNumber is required in the schema.
         continue-on-error: true
         run: |
-          echo "Scenario: Sending opcNumber with special characters (Invalid Pattern)."
-          # Pattern is ^[A-Z0-9]+$. We will send 'A123-456' (contains a hyphen)
-          BAD_PATTERN_PAYLOAD='{"opcNumber": "A123-456"}'
+          echo "Scenario: Sending an empty JSON object {}"
+          PAYLOAD='{}'
           
           STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
             --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
-            -d "$BAD_PATTERN_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
+            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
           
           echo "HTTP Status: $STATUS"
           if [ "$STATUS" == "400" ]; then
-            echo "SUCCESS: Flex Gateway rejected invalid pattern (Layer 3)."
+            echo "SUCCESS: Flex Gateway rejected request missing required opcNumber."
           else
-            echo "ERROR: Gateway allowed invalid pattern."
+            echo "ERROR: Gateway allowed request with missing mandatory fields (Status: $STATUS)."
             exit 1
           fi
 
-      - name: Layer 3 - Schema Validation (Additional Properties)
+      - name: Layer 3 - Invalid Pattern (Regex Check)
+        # Expected: 400 Bad Request
+        # The regex is ^[A-Z0-9]+$. We send a hyphen '-' to trigger a block.
         continue-on-error: true
         run: |
-          echo "Scenario: Sending valid opcNumber but with extra undefined fields."
-          # Specification says additionalProperties: false
-          EXTRA_FIELDS_PAYLOAD='{"opcNumber": "A123456789", "malicious_field": "true"}'
+          echo "Scenario: Sending opcNumber with invalid characters (A123-456)"
+          PAYLOAD='{"opcNumber": "A123-456"}'
           
           STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
             --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
-            -d "$EXTRA_FIELDS_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
+            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
           
           echo "HTTP Status: $STATUS"
           if [ "$STATUS" == "400" ]; then
-            echo "SUCCESS: Flex Gateway rejected additional properties (Layer 3)."
+            echo "SUCCESS: Flex Gateway rejected invalid pattern."
           else
-            echo "ERROR: Gateway allowed additional properties."
+            echo "ERROR: Gateway allowed invalid pattern (Status: $STATUS)."
             exit 1
           fi
 
-      - name: Layer 3 - Success Path (Valid Schema)
+
+      - name: Layer 3 - Undefined Fields (Strict Mode)
+        # Expected: 400 Bad Request
+        # additionalProperties: false is set in the schema.
+        continue-on-error: true
         run: |
-          echo "Scenario: Sending a perfectly valid request."
-          VALID_PAYLOAD='{"opcNumber": "A123456789"}'
-          
-          # Debugging directory structure
-          echo "Checking certs directory..."
-          ls -R ./certs || echo "Directory ./certs not found"
+          echo "Scenario: Sending valid opcNumber with an extra 'hack' field."
+          PAYLOAD='{"opcNumber": "A123456789", "hack": "true"}'
           
           STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
             --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
-            -d "$VALID_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
+            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
+          
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" == "400" ]; then
+            echo "SUCCESS: Flex Gateway rejected additional properties."
+          else
+            echo "ERROR: Gateway allowed undefined fields (Status: $STATUS)."
+            exit 1
+          fi
+
+      - name: Layer 3 - Success Path (Valid Payload)
+        # Expected: 200 OK
+        run: |
+          echo "Scenario: Sending a perfectly valid request (A123456789)"
+          PAYLOAD='{"opcNumber": "A123456789"}'
+          
+          STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
+            --cert ./certs/client.pem --key ./certs/client.key \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
           
           echo "HTTP Status: $STATUS"
           if [ "$STATUS" == "200" ]; then
             echo "SUCCESS: API processed the valid request."
           else
-            echo "Error: Received $STATUS instead of 200. Check backend and JWT policy."
+            echo "FAILED: Received $STATUS. Verify mTLS certs and Backend availability."
             exit 1
           fi
