@@ -81,7 +81,7 @@ jobs:
         # Expected: 200 OK
         run: |
           echo "Scenario: Sending a perfectly valid request (A123456789)"
-          PAYLOAD='{"opcNumber": "A123456789"}'
+          PAYLOAD='{"opcNumber": "B98765432109"}'
           
           STATUS=$(curl -k -v -w "%{http_code}" \
             --cert ./certs/client.pem --key ./certs/client.key \
