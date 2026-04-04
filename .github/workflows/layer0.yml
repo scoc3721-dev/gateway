@@ -25,7 +25,7 @@ jobs:
         run: |
           echo "Scenario: External client attempts to connect without mTLS certs."
           # Capture verbose output to check for the 'certificate required' alert
-          curl -v -k https://api.eis-poc-gateway.com/api/mtoapi 2>&1 | tee curl_output.txt || true
+          curl -v -k -I https://api.eis-poc-gateway.com/api/mtoapi 2>&1 | tee curl_output.txt || true
           
           if grep -q "alert certificate required" curl_output.txt; then
             echo "SUCCESS: Ingress correctly rejected request with 'TLS alert: certificate required'."
