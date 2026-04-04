@@ -25,7 +25,7 @@ jobs:
             --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
             -w "\nHTTP_STATUS:%{http_code}\n" \
-            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi
+            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/
                     
       - name: Layer 3 - Invalid Pattern (Regex Check)
         # Expected: 400 Bad Request
