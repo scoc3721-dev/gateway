@@ -1,4 +1,4 @@
-name: Security Layer Validation
+name: L0: Security Connectivity Check
 
 on:
   workflow_dispatch: # Allows manual trigger from the Actions tab
