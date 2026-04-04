@@ -1,47 +1,81 @@
-name: L0: Security Connectivity Check
+name: MTO Security Layer Validation
 
 on:
-  workflow_dispatch: # Allows manual trigger from the Actions tab
+  workflow_dispatch: 
   push:
     branches: [ main ]
 
 jobs:
-  connectivity-test:
-    name: mTLS Connectivity Check
+  security-tests:
+    name: MTO Security Layered Defense
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Basic DNS Check
+      - name: Layer 0 - Unauthorized Access (mTLS Check)
         run: |
-          echo "Checking if the Anypoint Ingress is reachable..."
-          # Verified Domain from Logs: api.eis-poc-gateway.com
-          nslookup api.eis-poc-gateway.com || echo "DNS Lookup Failed"
-
-      - name: Test Layer 0 - Unauthorized Access (Hello World)
-        run: |
-          echo "Scenario: External client attempts to connect without mTLS certs."
-          # We use || true because we expect curl to fail with an SSL Alert (Exit Code 56)
-          # We capture the full verbose output to check for the 'certificate required' alert
-          curl -v -k https://api.eis-poc-gateway.com/api/mtoapi 2>&1 | tee curl_output.txt || true
-          
-          if grep -q "alert certificate required" curl_output.txt; then
-            echo "SUCCESS: Ingress correctly rejected request with 'TLS alert: certificate required'."
-          elif grep -q "400" curl_output.txt; then
-            echo "SUCCESS: Ingress rejected the request with HTTP 400."
+          echo "Scenario: Client attempts connection WITHOUT mTLS certificates."
+          curl -v -k https://api.eis-poc-gateway.com/api/mtoapi 2>&1 | tee l0_output.txt || true
+          if grep -q "alert certificate required" l0_output.txt; then
+            echo "SUCCESS: Layer 0 (mTLS) Blocked the request."
           else
-            echo "ERROR: The connection was not rejected as expected. Check LB settings."
+            echo "ERROR: mTLS enforcement failed."
             exit 1
           fi
 
-      - name: Test Layer 0 - Authorized Access (With Certs)
-        # This step will run once you upload your certificates to the /certs folder
-        continue-on-error: true 
+      - name: Layer 3 - Schema Validation (Alphanumeric Pattern)
+        # Note: This requires client.pem and client.key in your /certs folder
         run: |
-          echo "Scenario: External client presents a trusted certificate."
-          # Ensure client.pem and client.key are in the 'certs' folder
-          pwd
-          ls -l
-          curl -v -k --cert ./.certs/client.pem --key ./.certs/client.key \
-          https://api.eis-poc-gateway.com/api/mtoapi
+          echo "Scenario: Sending opcNumber with special characters (Invalid Pattern)."
+          # Pattern is ^[A-Z0-9]+$. We will send 'A123-456' (contains a hyphen)
+          BAD_PATTERN_PAYLOAD='{"opcNumber": "A123-456"}'
+          
+          STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
+            --cert ./certs/client.pem --key ./certs/client.key \
+            -H "Content-Type: application/json" \
+            -d "$BAD_PATTERN_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
+          
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" == "400" ]; then
+            echo "SUCCESS: Flex Gateway rejected invalid pattern (Layer 3)."
+          else
+            echo "ERROR: Gateway allowed invalid pattern."
+            exit 1
+          fi
+
+      - name: Layer 3 - Schema Validation (Additional Properties)
+        run: |
+          echo "Scenario: Sending valid opcNumber but with extra undefined fields."
+          # Specification says additionalProperties: false
+          EXTRA_FIELDS_PAYLOAD='{"opcNumber": "A123456789", "malicious_field": "true"}'
+          
+          STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
+            --cert ./certs/client.pem --key ./certs/client.key \
+            -H "Content-Type: application/json" \
+            -d "$EXTRA_FIELDS_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
+          
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" == "400" ]; then
+            echo "SUCCESS: Flex Gateway rejected additional properties (Layer 3)."
+          else
+            echo "ERROR: Gateway allowed additional properties."
+            exit 1
+          fi
+
+      - name: Layer 3 - Success Path (Valid Schema)
+        run: |
+          echo "Scenario: Sending a perfectly valid request."
+          VALID_PAYLOAD='{"opcNumber": "A123456789"}'
+          
+          STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
+            --cert ./certs/client.pem --key ./certs/client.key \
+            -H "Content-Type: application/json" \
+            -d "$VALID_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
+          
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" == "200" ]; then
+            echo "SUCCESS: API processed the valid request."
+          else
+            echo "Note: Received $STATUS. Ensure backend is up and JWT is disabled for this step."
+          fi
