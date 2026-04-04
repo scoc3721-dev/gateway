@@ -7,7 +7,7 @@ on:
 
 jobs:
   connectivity-test:
-    name: Hello World Connectivity Check
+    name: mTLS Connectivity Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
