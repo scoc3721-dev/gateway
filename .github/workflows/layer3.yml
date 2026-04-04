@@ -58,8 +58,11 @@ jobs:
       - name: Layer 3 - Success Path (Valid Payload)
         # Expected: 200 OK
         run: |
-          URL="[https://api.eis-poc-gateway.com/api/mtoapi](https://api.eis-poc-gateway.com/api/mtoapi)"
+          URL="https://api.eis-poc-gateway.com/api/mtoapi"
           DATA='{"opcNumber": "A123456789"}'
+          
+          # Certificate Paths (Uncomment and adjust for local or CI use)
+          # CERT="--cert ./certs/client.pem --key ./certs/client.key"
           
           echo "--------------------------------------"
           echo "REQUEST:"
@@ -71,18 +74,29 @@ jobs:
           # -s: Silent
           # -w: Write out status code
           # -k: Insecure (for self-signed certs)
-          RESPONSE=$(curl -s -k --cert ./certs/client.pem --key ./certs/client.key \
-               -X POST "$URL" \
+          # Note: Added $CERT variable to easily toggle mTLS requirements
+          RESPONSE=$(curl -s -k $CERT -X POST "$URL" \
                -H "Content-Type: application/json" \
                -d "$DATA")
           
-          STATUS=$(curl -s -k --cert ./certs/client.pem --key ./certs/client.key \
-               -o /dev/null -w "%{http_code}" -X POST "$URL" \
+          STATUS=$(curl -s -k $CERT -o /dev/null -w "%{http_code}" -X POST "$URL" \
                -H "Content-Type: application/json" \
                -d "$DATA")
           
           echo "STATUS CODE: $STATUS"
           echo "--------------------------------------"
+          echo "RESPONSE BODY:"
+          
+          # Check if jq is installed before attempting to format
+          if command -v jq >/dev/null 2>&1; then
+              echo "$RESPONSE" | jq . || echo "$RESPONSE"
+          else
+              echo "$RESPONSE"
+          fi
+          echo "--------------------------------------"
+                    
+                    echo "STATUS CODE: $STATUS"
+                    echo "--------------------------------------"
           echo "RESPONSE BODY:"
           echo "$RESPONSE" | jq . || echo "$RESPONSE"
           echo "--------------------------------------"
