@@ -35,7 +35,7 @@ jobs:
           echo "Scenario: Sending opcNumber with invalid characters (A123-456)"
           PAYLOAD='{"opcNumber": "A123-456"}'
           
-          curl -k -v -s \
+          curl -k -v -I \
             --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
             -w "\nHTTP_STATUS:%{http_code}\n" \
