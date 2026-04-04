@@ -50,27 +50,9 @@ jobs:
           
           echo "RESULT STATUS CODE: $STATUS"
           echo "RESPONSE BODY:"
-          
-          if [ "$STATUS" -eq 200 ]; then
-              if command -v jq >/dev/null 2>&1; then
-                  echo "$BODY" | jq . || echo "$BODY"
-              else
-                  echo "$BODY"
-              fi
-          else
-              echo "Error or Record Not Found (Status $STATUS)"
-              if [ -n "$BODY" ]; then
-                  if command -v jq >/dev/null 2>&1; then
-                      echo "$BODY" | jq . || echo "$BODY"
-                  else
-                      echo "$BODY"
-                  fi
-              fi
-          fi
+          echo "$BODY"
           echo "--------------------------------------"
-
-          
-                    
+                   
       - name: Layer 3 - Invalid Pattern (Regex Check)
         # Expected: 400 Bad Request
         # The regex is ^[A-Z0-9]+$. We send a hyphen '-' to trigger a block.
@@ -88,9 +70,6 @@ jobs:
           echo "--------------------------------------"
           
           # Execute single curl command
-          # -i: Include protocol response headers in the output
-          # -v: Verbose (useful for debugging TLS/handshake)
-          # -w: Appends the HTTP status code to the end of the output
           RAW_OUTPUT=$(curl -k -i -s \
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
@@ -101,31 +80,12 @@ jobs:
           
           # Extract the HTTP Status from the end of the output
           STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
-          
-          # Extract the Body
-          # 1. Remove our custom HTTP_STATUS string
-          # 2. Use sed to delete everything from the first line until the first empty line (strips HTTP headers)
           BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
           
           echo "RESULT STATUS CODE: $STATUS"
           echo "RESPONSE BODY:"
-          
-          if [ "$STATUS" -eq 200 ]; then
-              if command -v jq >/dev/null 2>&1; then
-                  echo "$BODY" | jq . || echo "$BODY"
-              else
-                  echo "$BODY"
-              fi
-          else
-              echo "Error or Record Not Found (Status $STATUS)"
-              if [ -n "$BODY" ]; then
-                  if command -v jq >/dev/null 2>&1; then
-                      echo "$BODY" | jq . || echo "$BODY"
-                  else
-                      echo "$BODY"
-                  fi
-              fi
-          fi
+          echo "$BODY"
+         
           echo "--------------------------------------"
 
       - name: Layer 3 - Undefined Fields (Strict Mode)
@@ -145,9 +105,6 @@ jobs:
           echo "--------------------------------------"
           
           # Execute single curl command
-          # -i: Include protocol response headers in the output
-          # -v: Verbose (useful for debugging TLS/handshake)
-          # -w: Appends the HTTP status code to the end of the output
           RAW_OUTPUT=$(curl -k -i -s \
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
@@ -156,33 +113,13 @@ jobs:
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
           
-          # Extract the HTTP Status from the end of the output
           STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
           
-          # Extract the Body
-          # 1. Remove our custom HTTP_STATUS string
-          # 2. Use sed to delete everything from the first line until the first empty line (strips HTTP headers)
           BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
           
           echo "RESULT STATUS CODE: $STATUS"
           echo "RESPONSE BODY:"
-          
-          if [ "$STATUS" -eq 200 ]; then
-              if command -v jq >/dev/null 2>&1; then
-                  echo "$BODY" | jq . || echo "$BODY"
-              else
-                  echo "$BODY"
-              fi
-          else
-              echo "Error or Record Not Found (Status $STATUS)"
-              if [ -n "$BODY" ]; then
-                  if command -v jq >/dev/null 2>&1; then
-                      echo "$BODY" | jq . || echo "$BODY"
-                  else
-                      echo "$BODY"
-                  fi
-              fi
-          fi
+          echo "$BODY"
           echo "--------------------------------------"
           
 
@@ -208,32 +145,13 @@ jobs:
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
           
-          # Extract the HTTP Status from the end of the output
           STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
-          
-          # Extract the Body
-          # 1. Remove our custom HTTP_STATUS string
-          # 2. Use sed to delete everything from the first line until the first empty line (strips HTTP headers)
+
           BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
           
           echo "RESULT STATUS CODE: $STATUS"
           echo "RESPONSE BODY:"
+          echo "$BODY"
           
-          if [ "$STATUS" -eq 200 ]; then
-              if command -v jq >/dev/null 2>&1; then
-                  echo "$BODY" | jq . || echo "$BODY"
-              else
-                  echo "$BODY"
-              fi
-          else
-              echo "Error or Record Not Found (Status $STATUS)"
-              if [ -n "$BODY" ]; then
-                  if command -v jq >/dev/null 2>&1; then
-                      echo "$BODY" | jq . || echo "$BODY"
-                  else
-                      echo "$BODY"
-                  fi
-              fi
-          fi
           echo "--------------------------------------"
 
