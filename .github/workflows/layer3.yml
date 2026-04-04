@@ -14,18 +14,62 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Layer 3 - Missing Mandatory Field (Empty Body)
-        # Expected: 400 Bad Request
-        # opcNumber is required in the schema.
+
         continue-on-error: true
         run: |
           echo "Scenario: Sending an empty JSON object {}"
           PAYLOAD='{}'
+          URL="https://api.eis-poc-gateway.com/api/mtoapi"
+          CERT_PATH="./certs/client.pem"
+          KEY_PATH="./certs/client.key"
+          
+          echo "-------------------------------------"
+          echo "RQUEST URL: $URL"
+          echo "PAYLOAD: $PAYLOAD"
+          echo "--------------------------------------"
+          
+          # Execute single curl command
+          # -i: Include protocol response headers in the output
+          # -v: Verbose (useful for debugging TLS/handshake)
+          # -w: Appends the HTTP status code to the end of the output
+          RAW_OUTPUT=$(curl -k -i -s \
+              --cert "$CERT_PATH" \
+              --key "$KEY_PATH" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              -w "\nHTTP_STATUS:%{http_code}" \
+              "$URL")
+          
+          # Extract the HTTP Status from the end of the output
+          STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
+          
+          # Extract the Body
+          # 1. Remove our custom HTTP_STATUS string
+          # 2. Use sed to delete everything from the first line until the first empty line (strips HTTP headers)
+          BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
+          
+          echo "RESULT STATUS CODE: $STATUS"
+          echo "RESPONSE BODY:"
+          
+          if [ "$STATUS" -eq 200 ]; then
+              if command -v jq >/dev/null 2>&1; then
+                  echo "$BODY" | jq . || echo "$BODY"
+              else
+                  echo "$BODY"
+              fi
+          else
+              echo "Error or Record Not Found (Status $STATUS)"
+              if [ -n "$BODY" ]; then
+                  if command -v jq >/dev/null 2>&1; then
+                      echo "$BODY" | jq . || echo "$BODY"
+                  else
+                      echo "$BODY"
+                  fi
+              fi
+          fi
+          echo "--------------------------------------"
 
-          curl -k -v -i \
-            --cert ./certs/client.pem --key ./certs/client.key \
-            -H "Content-Type: application/json" \
-            -w "\nHTTP_STATUS:%{http_code}\n" \
-            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi
+          
                     
       - name: Layer 3 - Invalid Pattern (Regex Check)
         # Expected: 400 Bad Request
@@ -34,12 +78,55 @@ jobs:
         run: |
           echo "Scenario: Sending opcNumber with invalid characters (A123-456)"
           PAYLOAD='{"opcNumber": "A@6"}'
+          URL="https://api.eis-poc-gateway.com/api/mtoapi"
+          CERT_PATH="./certs/client.pem"
+          KEY_PATH="./certs/client.key"
           
-          curl -k -v -i \
-            --cert ./certs/client.pem --key ./certs/client.key \
-            -H "Content-Type: application/json" \
-            -w "\nHTTP_STATUS:%{http_code}\n" \
-            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi
+          echo "-------------------------------------"
+          echo "RQUEST URL: $URL"
+          echo "PAYLOAD: $PAYLOAD"
+          echo "--------------------------------------"
+          
+          # Execute single curl command
+          # -i: Include protocol response headers in the output
+          # -v: Verbose (useful for debugging TLS/handshake)
+          # -w: Appends the HTTP status code to the end of the output
+          RAW_OUTPUT=$(curl -k -i -s \
+              --cert "$CERT_PATH" \
+              --key "$KEY_PATH" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              -w "\nHTTP_STATUS:%{http_code}" \
+              "$URL")
+          
+          # Extract the HTTP Status from the end of the output
+          STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
+          
+          # Extract the Body
+          # 1. Remove our custom HTTP_STATUS string
+          # 2. Use sed to delete everything from the first line until the first empty line (strips HTTP headers)
+          BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
+          
+          echo "RESULT STATUS CODE: $STATUS"
+          echo "RESPONSE BODY:"
+          
+          if [ "$STATUS" -eq 200 ]; then
+              if command -v jq >/dev/null 2>&1; then
+                  echo "$BODY" | jq . || echo "$BODY"
+              else
+                  echo "$BODY"
+              fi
+          else
+              echo "Error or Record Not Found (Status $STATUS)"
+              if [ -n "$BODY" ]; then
+                  if command -v jq >/dev/null 2>&1; then
+                      echo "$BODY" | jq . || echo "$BODY"
+                  else
+                      echo "$BODY"
+                  fi
+              fi
+          fi
+          echo "--------------------------------------"
 
       - name: Layer 3 - Undefined Fields (Strict Mode)
         # Expected: 400 Bad Request
@@ -48,23 +135,12 @@ jobs:
         run: |
           echo "Scenario: Sending valid opcNumber with an extra 'hack' field."
           PAYLOAD='{"opcNumber": "A123456789", "hack": "true"}'
-          
-          curl -k -v -s \
-            --cert ./certs/client.pem --key ./certs/client.key \
-            -H "Content-Type: application/json" \
-            -w "\nHTTP_STATUS:%{http_code}\n" \
-            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi
-
-      - name: Layer 3 - Success Path (Valid Payload)
-        # Expected: 200 OK
-        run: |
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
-          PAYLOAD='{"opcNumber": "B98765432109"}'
           CERT_PATH="./certs/client.pem"
           KEY_PATH="./certs/client.key"
           
-          echo "------------RQUEST"
-          echo "URL: $URL"
+          echo "-------------------------------------"
+          echo "RQUEST URL: $URL"
           echo "PAYLOAD: $PAYLOAD"
           echo "--------------------------------------"
           
@@ -72,6 +148,58 @@ jobs:
           # -i: Include protocol response headers in the output
           # -v: Verbose (useful for debugging TLS/handshake)
           # -w: Appends the HTTP status code to the end of the output
+          RAW_OUTPUT=$(curl -k -i -s \
+              --cert "$CERT_PATH" \
+              --key "$KEY_PATH" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              -w "\nHTTP_STATUS:%{http_code}" \
+              "$URL")
+          
+          # Extract the HTTP Status from the end of the output
+          STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
+          
+          # Extract the Body
+          # 1. Remove our custom HTTP_STATUS string
+          # 2. Use sed to delete everything from the first line until the first empty line (strips HTTP headers)
+          BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
+          
+          echo "RESULT STATUS CODE: $STATUS"
+          echo "RESPONSE BODY:"
+          
+          if [ "$STATUS" -eq 200 ]; then
+              if command -v jq >/dev/null 2>&1; then
+                  echo "$BODY" | jq . || echo "$BODY"
+              else
+                  echo "$BODY"
+              fi
+          else
+              echo "Error or Record Not Found (Status $STATUS)"
+              if [ -n "$BODY" ]; then
+                  if command -v jq >/dev/null 2>&1; then
+                      echo "$BODY" | jq . || echo "$BODY"
+                  else
+                      echo "$BODY"
+                  fi
+              fi
+          fi
+          echo "--------------------------------------"
+          
+
+      - name: Layer 3 - Success Path (Valid Payload)
+        run: |
+          echo "Scenario: Sending an correct ocpNumber in the request"
+          URL="https://api.eis-poc-gateway.com/api/mtoapi"
+          PAYLOAD='{"opcNumber": "B98765432109"}'
+          CERT_PATH="./certs/client.pem"
+          KEY_PATH="./certs/client.key"
+          
+          echo "-------------------------------------"
+          echo "RQUEST URL: $URL"
+          echo "PAYLOAD: $PAYLOAD"
+          echo "--------------------------------------"
+          
+          # Execute single curl command
           RAW_OUTPUT=$(curl -k -i -s \
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
