@@ -1,4 +1,4 @@
-name: MTO Security Layer Validation
+name: Security Layer Validation
 
 on:
   workflow_dispatch: # Allows manual trigger from the Actions tab

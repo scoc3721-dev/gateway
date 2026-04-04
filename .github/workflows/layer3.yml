@@ -13,17 +13,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Layer 0 - Unauthorized Access (mTLS Check)
-        run: |
-          echo "Scenario: Client attempts connection WITHOUT mTLS certificates."
-          curl -v -k https://api.eis-poc-gateway.com/api/mtoapi 2>&1 | tee l0_output.txt || true
-          if grep -q "alert certificate required" l0_output.txt; then
-            echo "SUCCESS: Layer 0 (mTLS) Blocked the request."
-          else
-            echo "ERROR: mTLS enforcement failed."
-            exit 1
-          fi
-
       - name: Layer 3 - Schema Validation (Alphanumeric Pattern)
         # Note: This requires client.pem and client.key in your /certs folder
         run: |
@@ -32,7 +21,7 @@ jobs:
           BAD_PATTERN_PAYLOAD='{"opcNumber": "A123-456"}'
           
           STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
-            --cert ./certs/client.pem --key ./certs/client.key \
+            --cert ./.certs/client.pem --key ./.certs/client.key \
             -H "Content-Type: application/json" \
             -d "$BAD_PATTERN_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
           
@@ -51,7 +40,7 @@ jobs:
           EXTRA_FIELDS_PAYLOAD='{"opcNumber": "A123456789", "malicious_field": "true"}'
           
           STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
-            --cert ./certs/client.pem --key ./certs/client.key \
+            --cert ./.certs/client.pem --key ./.certs/client.key \
             -H "Content-Type: application/json" \
             -d "$EXTRA_FIELDS_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
           
@@ -69,7 +58,7 @@ jobs:
           VALID_PAYLOAD='{"opcNumber": "A123456789"}'
           
           STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
-            --cert ./certs/client.pem --key ./certs/client.key \
+            --cert ./.certs/client.pem --key ./.certs/client.key \
             -H "Content-Type: application/json" \
             -d "$VALID_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
           
