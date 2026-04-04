@@ -59,12 +59,13 @@ jobs:
         # Expected: 200 OK
         run: |
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
-          PAYLOAD='{"opcNumber": "A123456789"}'
+          PAYLOAD='{"opcNumber": "B98765432109"}'
           CERT_PATH="./certs/client.pem"
           KEY_PATH="./certs/client.key"
           
-          echo "--------------------------------------"
+          echo "------------RQUEST"
           echo "URL: $URL"
+          echo "PAYLOAD: $PAYLOAD"
           echo "--------------------------------------"
           
           # Execute single curl command
@@ -87,10 +88,7 @@ jobs:
           # 2. Use sed to delete everything from the first line until the first empty line (strips HTTP headers)
           BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
           
-          echo "--------------------------------------"
-          echo "RESULT"
-          echo "STATUS CODE: $STATUS"
-          echo "--------------------------------------"
+          echo "RESULT STATUS CODE: $STATUS"
           echo "RESPONSE BODY:"
           
           if [ "$STATUS" -eq 200 ]; then
