@@ -21,7 +21,7 @@ jobs:
           BAD_PATTERN_PAYLOAD='{"opcNumber": "A123-456"}'
           
           STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
-            --cert ./.certs/client.pem --key ./.certs/client.key \
+            --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
             -d "$BAD_PATTERN_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
           
@@ -41,7 +41,7 @@ jobs:
           EXTRA_FIELDS_PAYLOAD='{"opcNumber": "A123456789", "malicious_field": "true"}'
           
           STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
-            --cert ./.certs/client.pem --key ./.certs/client.key \
+            --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
             -d "$EXTRA_FIELDS_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
           
@@ -58,8 +58,12 @@ jobs:
           echo "Scenario: Sending a perfectly valid request."
           VALID_PAYLOAD='{"opcNumber": "A123456789"}'
           
+          # Debugging directory structure
+          echo "Checking certs directory..."
+          ls -R ./certs || echo "Directory ./certs not found"
+          
           STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
-            --cert ./.certs/client.pem --key ./.certs/client.key \
+            --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
             -d "$VALID_PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
           
@@ -67,5 +71,6 @@ jobs:
           if [ "$STATUS" == "200" ]; then
             echo "SUCCESS: API processed the valid request."
           else
-            echo "Note: Received $STATUS. Ensure backend is up and JWT is disabled for this step."
+            echo "Error: Received $STATUS instead of 200. Check backend and JWT policy."
+            exit 1
           fi
