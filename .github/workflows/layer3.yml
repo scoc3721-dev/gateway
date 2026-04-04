@@ -83,7 +83,7 @@ jobs:
           echo "Scenario: Sending a perfectly valid request (A123456789)"
           PAYLOAD='{"opcNumber": "A123456789"}'
           
-          STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
+          STATUS=$(curl -k -v /dev/null -w "%{http_code}" \
             --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
             -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
