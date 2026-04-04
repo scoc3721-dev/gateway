@@ -58,11 +58,29 @@ jobs:
       - name: Layer 3 - Success Path (Valid Payload)
         # Expected: 200 OK
         run: |
-          echo "Scenario: Sending a perfectly valid request (A123456789)"
-          PAYLOAD='{"opcNumber": "B98765432109"}'
+          URL="[https://api.eis-poc-gateway.com/api/mtoapi](https://api.eis-poc-gateway.com/api/mtoapi)"
+          DATA='{"opcNumber": "A123456789"}'
           
-          curl -k -v -s \
-            --cert ./certs/client.pem --key ./certs/client.key \
-            -H "Content-Type: application/json" \
-            -w "\nHTTP_STATUS:%{http_code}\n" \
-            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi
+          echo "--------------------------------------"
+          echo "REQUEST:"
+          echo "POST $URL"
+          echo "Body: $DATA"
+          echo "--------------------------------------"
+          
+          # Execute curl
+          # -s: Silent
+          # -w: Write out status code
+          # -k: Insecure (for self-signed certs)
+          RESPONSE=$(curl -s -k -X POST "$URL" \
+               -H "Content-Type: application/json" \
+               -d "$DATA")
+          
+          STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" -X POST "$URL" \
+               -H "Content-Type: application/json" \
+               -d "$DATA")
+          
+          echo "STATUS CODE: $STATUS"
+          echo "--------------------------------------"
+          echo "RESPONSE BODY:"
+          echo "$RESPONSE" | jq . || echo "$RESPONSE"
+          echo "--------------------------------------"
