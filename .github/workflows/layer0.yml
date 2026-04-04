@@ -45,7 +45,7 @@ jobs:
           ls -R ./certs || echo "Certificates directory not found!"
           
           if [ -f "./certs/client.pem" ]; then
-            curl -v -k --cert ./certs/client.pem --key ./certs/client.key \
+            curl -v -k -I --cert ./certs/client.pem --key ./certs/client.key \
             https://api.eis-poc-gateway.com/api/mtoapi
           else
             echo "SKIP: No certificates found in ./certs/ to perform authorized test."
