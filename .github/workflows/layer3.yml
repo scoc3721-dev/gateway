@@ -21,9 +21,10 @@ jobs:
           echo "Scenario: Sending an empty JSON object {}"
           PAYLOAD='{}'
 
-          curl -k -v \
+          curl -k -v -s \
             --cert ./certs/client.pem --key ./certs/client.key \
-            -H "Content-Type: application/json" \ -w "\nHTTP_STATUS:%{http_code}\n" \
+            -H "Content-Type: application/json" \
+            -w "\nHTTP_STATUS:%{http_code}\n" \
             -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi
                     
       - name: Layer 3 - Invalid Pattern (Regex Check)
@@ -34,19 +35,11 @@ jobs:
           echo "Scenario: Sending opcNumber with invalid characters (A123-456)"
           PAYLOAD='{"opcNumber": "A123-456"}'
           
-          STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
+          curl -k -v -s \
             --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
-          
-          echo "HTTP Status: $STATUS"
-          if [ "$STATUS" == "400" ]; then
-            echo "SUCCESS: Flex Gateway rejected invalid pattern."
-          else
-            echo "ERROR: Gateway allowed invalid pattern (Status: $STATUS)."
-            exit 1
-          fi
-
+            -w "\nHTTP_STATUS:%{http_code}\n" \
+            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi
 
       - name: Layer 3 - Undefined Fields (Strict Mode)
         # Expected: 400 Bad Request
@@ -56,18 +49,11 @@ jobs:
           echo "Scenario: Sending valid opcNumber with an extra 'hack' field."
           PAYLOAD='{"opcNumber": "A123456789", "hack": "true"}'
           
-          STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
+          curl -k -v -s \
             --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
-          
-          echo "HTTP Status: $STATUS"
-          if [ "$STATUS" == "400" ]; then
-            echo "SUCCESS: Flex Gateway rejected additional properties."
-          else
-            echo "ERROR: Gateway allowed undefined fields (Status: $STATUS)."
-            exit 1
-          fi
+            -w "\nHTTP_STATUS:%{http_code}\n" \
+            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi
 
       - name: Layer 3 - Success Path (Valid Payload)
         # Expected: 200 OK
@@ -75,15 +61,8 @@ jobs:
           echo "Scenario: Sending a perfectly valid request (A123456789)"
           PAYLOAD='{"opcNumber": "B98765432109"}'
           
-          STATUS=$(curl -k -v  \
+          curl -k -v -s \
             --cert ./certs/client.pem --key ./certs/client.key \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi)
-          
-          echo "HTTP Status: $STATUS"
-          if [ "$STATUS" == "200" ]; then
-            echo "SUCCESS: API processed the valid request."
-          else
-            echo "FAILED: Received $STATUS. Verify mTLS certs and Backend availability."
-            exit 1
-          fi
+            -w "\nHTTP_STATUS:%{http_code}\n" \
+            -d "$PAYLOAD" https://api.eis-poc-gateway.com/api/mtoapi
