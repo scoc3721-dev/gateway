@@ -71,11 +71,13 @@ jobs:
           # -s: Silent
           # -w: Write out status code
           # -k: Insecure (for self-signed certs)
-          RESPONSE=$(curl -s -k -X POST "$URL" \
+          RESPONSE=$(curl -s -k --cert ./certs/client.pem --key ./certs/client.key \
+               -X POST "$URL" \
                -H "Content-Type: application/json" \
                -d "$DATA")
           
-          STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" -X POST "$URL" \
+          STATUS=$(curl -s -k --cert ./certs/client.pem --key ./certs/client.key \
+               -o /dev/null -w "%{http_code}" -X POST "$URL" \
                -H "Content-Type: application/json" \
                -d "$DATA")
           
