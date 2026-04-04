@@ -33,7 +33,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "Scenario: Sending opcNumber with invalid characters (A123-456)"
-          PAYLOAD='{"opcNumber": "A123-456"}'
+          PAYLOAD='{"opcNumber": "A@6"}'
           
           curl -k -v -i \
             --cert ./certs/client.pem --key ./certs/client.key \
