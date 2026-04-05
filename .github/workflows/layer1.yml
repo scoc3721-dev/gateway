@@ -31,7 +31,7 @@ jobs:
             
             TOKEN=$(curl -s "$TOKEN_URL")
             echo "Request Header:"
-            echo "Authorization: Bearer $TOKEN
+            echo "Authorization: Bearer $TOKEN"
             
             RAW_OUTPUT=$(curl -k -i -s \
                 --cert "$CERT_PATH" --key "$KEY_PATH" \
@@ -73,7 +73,7 @@ jobs:
             
             TOKEN=$(curl -s "$TOKEN_URL")
             echo "Request Header:"
-            echo "Authorization: Bearer $TOKEN
+            echo "Authorization: Bearer $TOKEN"
             
             RAW_OUTPUT=$(curl -k -i -s \
                 --cert "$CERT_PATH" --key "$KEY_PATH" \
