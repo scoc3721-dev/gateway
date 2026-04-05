@@ -21,8 +21,7 @@ jobs:
             CERT_PATH="./certs/client.pem"
             KEY_PATH="./certs/client.key"
             TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
-            
-            clear
+
             echo "--------------------------------------------------"
             echo "   DEMO: LAYER 1 - IDENTITY CONTROL (JWT VALIDATION)        "
             echo "--------------------------------------------------"
