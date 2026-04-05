@@ -1,66 +1,62 @@
-#!/bin/bash
+name: "L1: Identity Control (JWT Validation)"
 
-# --- Configuration ---
-URL="https://api.eis-poc-gateway.com/api/mtoapi"
-CERT_PATH="./certs/client.pem"
-KEY_PATH="./certs/client.key"
-TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+on:
+  workflow_dispatch: # Allows manual trigger from the Actions tab
+  push:
+    branches: [ main ]
 
-clear
-echo "--------------------------------------------------"
-echo "   DEMO: LAYER 1 - IDENTITY CONTROL (JWT)        "
-echo "--------------------------------------------------"
+jobs:
+  connectivity-test:
+    name: mTLS Connectivity Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-# STEP 1: Prove mTLS works (Network Layer)
-echo "[SCENARIO 1] Network Trust check..."
-echo "Running curl with valid mTLS certs but NO JWT..."
-
-M_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
-    --cert "$CERT_PATH" --key "$KEY_PATH" "$URL")
-
-echo "Result: Network Connection SUCCESSFUL (Status: $M_STATUS)"
-echo "Note: The Gateway accepted the mTLS handshake but rejected the identity."
-
-# STEP 2: Get valid JWT from token provider
-echo ""
-echo "[INFO] Fetching JWT token from provider..."
-
-TOKEN_RESPONSE=$(curl -s "$TOKEN_URL")
-
-# If response is JSON (recommended)
-TOKEN=$(echo "$TOKEN_RESPONSE" | sed -n 's/.*"access_token"[ ]*:[ ]*"\([^"]*\)".*/\1/p')
-
-# Fallback: if endpoint returns plain string with quotes
-if [ -z "$TOKEN" ]; then
-  TOKEN=$(echo "$TOKEN_RESPONSE" | tr -d '"')
-fi
-
-echo "Token acquired."
-
-# STEP 3: Call API with valid JWT
-echo ""
-echo "[SCENARIO 2] Valid JWT Test..."
-echo "Sending request with Valid mTLS + Valid JWT..."
-
-RAW_OUTPUT=$(curl -k -i -s \
-    --cert "$CERT_PATH" --key "$KEY_PATH" \
-    -H "Authorization: Bearer $TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '{"opcNumber": "A123456789"}' \
-    -w "\nHTTP_STATUS:%{http_code}" \
-    "$URL")
-
-STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
-BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
-
-if [ "$STATUS" -eq 200 ]; then
-    echo "SUCCESS: Request accepted (200 OK)."
-else
-    echo "FAILURE: Request returned $STATUS."
-fi
-
-echo ""
-echo "--------------------------------------------------"
-echo "GATEWAY RESPONSE:"
-echo "$BODY"
-echo "--------------------------------------------------"
+      - name: Layer 1 - JWT Validation (expired token)
+        continue-on-error: true
+        run: |
+            # --- Configuration ---
+            URL="https://api.eis-poc-gateway.com/api/mtoapi"
+            CERT_PATH="./certs/client.pem"
+            KEY_PATH="./certs/client.key"
+            TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+            
+            clear
+            echo "--------------------------------------------------"
+            echo "   DEMO: LAYER 1 - IDENTITY CONTROL (JWT VALIDATION)        "
+            echo "--------------------------------------------------"
+            
+            # STEP 1: Get valid JWT from token provider
+            echo ""
+            echo "[INFO] Fetching JWT token from provider..."
+            
+            TOKEN=$(curl -s "$TOKEN_URL")
+            echo "Token acquired.\n $TOKEN"
+            
+            # STEP 2: Call API with invalid JWT
+            echo ""
+            echo "[SCENARIO 2] Valid JWT Test..."
+            
+            RAW_OUTPUT=$(curl -k -i -s \
+                --cert "$CERT_PATH" --key "$KEY_PATH" \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                -d '{"opcNumber": "A123456789"}' \
+                -w "\nHTTP_STATUS:%{http_code}" \
+                "$URL")
+            
+            STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
+            BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
+            
+            if [ "$STATUS" -eq 200 ]; then
+                echo "SUCCESS: Request accepted (200 OK)."
+            else
+                echo "FAILURE: Request returned $STATUS."
+            fi
+            
+            echo ""
+            echo "--------------------------------------------------"
+            echo "GATEWAY RESPONSE:"
+            echo "$BODY"
+            echo "--------------------------------------------------"
