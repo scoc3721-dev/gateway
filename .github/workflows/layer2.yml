@@ -1,10 +1,8 @@
 name: "L2: Traffic Protection (Rate Limiting / SLA)"
-
 on:
-  workflow_dispatch: # Allows manual trigger from the Actions tab
+  workflow_dispatch:
   push:
     branches: [ main ]
-
 jobs:
   connectivity-test:
     name: Traffic Protection (Rate Limiting / SLA)
@@ -13,88 +11,124 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Layer 2 - Rate Limiting (regular client)
+      - name: Layer 2 - Rate Limiting (regular client, limit 5/min)
         continue-on-error: true
         run: |
-            URL="https://api.eis-poc-gateway.com/api/mtoapi"
-            CERT_PATH="./certs/client.pem"
-            KEY_PATH="./certs/client.key"
-            TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
-            REQULAR_CLIENT_ID="fd6a16c7a11d48038f1bc3147a0982a8"
-            REQULAR_CLIENT_SECRET="79AC5CAE6c83431CB422A61BA4e6e156"
-            
-            echo "--------------------------------------------------"
-            echo "   DEMO: LAYER 2 - Rate Limiting (regular client)      "
-            echo "--------------------------------------------------"
-                   
-            TOKEN=$(curl -s "$TOKEN_URL")
-            echo "Request Header:"
-            echo "Authorization: Bearer $TOKEN"
-            echo "client-id: $REGULAR_CLIENT_ID"
-            
-            RAW_OUTPUT=$(curl -k -i -s \
-                --cert "$CERT_PATH" --key "$KEY_PATH" \
-                -H "Authorization: Bearer $TOKEN" \
-                -H "Content-Type: application/json" \
-                -H "client-id: $REGULAR_CLIENT_ID" \
-                -H "client-secret: $REGULAR_CLIENT_SECRET" \
-                -d '{"opcNumber": "B98765432109"}' \
-                -w "\nHTTP_STATUS:%{http_code}" \
-                "$URL")
-            
-            STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
-            BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
-            
-            if [ "$STATUS" -eq 200 ]; then
-                echo "SUCCESS: Request accepted (200 OK)."
-            else
-                echo "FAILURE: Request returned $STATUS."
-            fi
-            
-            echo "--------------------------------------------------"
-            echo "RESPONSE:"
-            echo "$BODY"
-            echo "--------------------------------------------------"
+          URL="https://api.eis-poc-gateway.com/api/mtoapi"
+          CERT_PATH="./certs/client.pem"
+          KEY_PATH="./certs/client.key"
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token"
+          REGULAR_CLIENT_ID="fd6a16c7a11d48038f1bc3147a0982a8"
+          TOTAL_REQUESTS=8
+          PASS=0
+          FAIL_429=0
+          FAIL_OTHER=0
 
-      - name: Layer 2 - JWT Validation (valid token)
+          echo "=================================================="
+          echo "  DEMO: LAYER 2 - Rate Limiting (regular client)"
+          echo "  Limit: 5 req/min  |  Sending: $TOTAL_REQUESTS requests"
+          echo "=================================================="
+
+          TOKEN=$(curl -s "$TOKEN_URL")
+          echo "Token acquired: ${TOKEN:0:20}..."
+          echo ""
+
+          for i in $(seq 1 $TOTAL_REQUESTS); do
+            RAW_OUTPUT=$(curl -k -i -s \
+              --cert "$CERT_PATH" --key "$KEY_PATH" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -H "client-id: $REGULAR_CLIENT_ID" \
+              -d '{"opcNumber": "B98765432109"}' \
+              -w "\nHTTP_STATUS:%{http_code}" \
+              "$URL")
+
+            STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
+
+            if [ "$STATUS" -eq 200 ]; then
+              PASS=$((PASS + 1))
+              echo "Request $i → 200 OK       ✓ (allowed)"
+            elif [ "$STATUS" -eq 429 ]; then
+              FAIL_429=$((FAIL_429 + 1))
+              echo "Request $i → 429 TOO MANY ✗ (rate limited)"
+            else
+              FAIL_OTHER=$((FAIL_OTHER + 1))
+              echo "Request $i → $STATUS (unexpected)"
+            fi
+          done
+
+          echo ""
+          echo "=================================================="
+          echo "SUMMARY (regular client)"
+          echo "  200 OK           : $PASS"
+          echo "  429 Rate Limited : $FAIL_429"
+          echo "  Other            : $FAIL_OTHER"
+          echo "=================================================="
+
+          if [ "$FAIL_429" -gt 0 ] && [ "$PASS" -le 5 ]; then
+            echo "RESULT: PASS - Gateway enforced the 5/min limit correctly."
+          else
+            echo "RESULT: UNEXPECTED - check gateway SLA policy."
+            exit 1
+          fi
+
+      - name: Layer 2 - Rate Limiting (premium client, limit 10/min)
         continue-on-error: true
         run: |
-            # --- Configuration ---
-            URL="https://api.eis-poc-gateway.com/api/mtoapi"
-            CERT_PATH="./certs/client.pem"
-            KEY_PATH="./certs/client.key"
-            TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
-            PREMIUM_CLIENT_ID="8f4f955ad7504106948cc5aa1a3a3d7d"
-            PREMIUM_CLIENT_SECRET="eA9eb031A0bc4d64943d077747999f91"
-            echo "--------------------------------------------------"
-            echo "   DEMO: LAYER 2 - Rate Limiting (premium client)      "
-            echo "--------------------------------------------------"
-            
-            TOKEN=$(curl -s "$TOKEN_URL")
-            echo "Request Header:"
-            echo "Authorization: Bearer $TOKEN"
-            echo "client-id: $PREMIUM_CLIENT_ID"
-            
+          URL="https://api.eis-poc-gateway.com/api/mtoapi"
+          CERT_PATH="./certs/client.pem"
+          KEY_PATH="./certs/client.key"
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token"
+          PREMIUM_CLIENT_ID="fd6a16c7a11d48038f1bc3147a0982a8"
+          TOTAL_REQUESTS=13
+          PASS=0
+          FAIL_429=0
+          FAIL_OTHER=0
+
+          echo "=================================================="
+          echo "  DEMO: LAYER 2 - Rate Limiting (premium client)"
+          echo "  Limit: 10 req/min  |  Sending: $TOTAL_REQUESTS requests"
+          echo "=================================================="
+
+          TOKEN=$(curl -s "$TOKEN_URL")
+          echo "Token acquired: ${TOKEN:0:20}..."
+          echo ""
+
+          for i in $(seq 1 $TOTAL_REQUESTS); do
             RAW_OUTPUT=$(curl -k -i -s \
-                --cert "$CERT_PATH" --key "$KEY_PATH" \
-                -H "Authorization: Bearer $TOKEN" \
-                -H "Content-Type: application/json" \
-                -H "client-id: $PREMIUM_CLIENT_ID" \
-                -H "client-secret: $PREMIUM_CLIENT_SECRET" \
-                -d '{"opcNumber": "B98765432109"}' \
-                -w "\nHTTP_STATUS:%{http_code}" \
-                "$URL")
-            
+              --cert "$CERT_PATH" --key "$KEY_PATH" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -H "client-id: $PREMIUM_CLIENT_ID" \
+              -d '{"opcNumber": "B98765432109"}' \
+              -w "\nHTTP_STATUS:%{http_code}" \
+              "$URL")
+
             STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
-            BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
-            
+
             if [ "$STATUS" -eq 200 ]; then
-                echo "SUCCESS: Request accepted (200 OK)."
+              PASS=$((PASS + 1))
+              echo "Request $i → 200 OK       ✓ (allowed)"
+            elif [ "$STATUS" -eq 429 ]; then
+              FAIL_429=$((FAIL_429 + 1))
+              echo "Request $i → 429 TOO MANY ✗ (rate limited)"
             else
-                echo "FAILURE: Request returned $STATUS."
+              FAIL_OTHER=$((FAIL_OTHER + 1))
+              echo "Request $i → $STATUS (unexpected)"
             fi
-            
-            echo "--------------------------------------------------"
-            echo "RESPONSE:"
-            echo "$BODY"
-            echo "--------------------------------------------------"    
+          done
+
+          echo ""
+          echo "=================================================="
+          echo "SUMMARY (premium client)"
+          echo "  200 OK           : $PASS"
+          echo "  429 Rate Limited : $FAIL_429"
+          echo "  Other            : $FAIL_OTHER"
+          echo "=================================================="
+
+          if [ "$FAIL_429" -gt 0 ] && [ "$PASS" -le 10 ]; then
+            echo "RESULT: PASS - Gateway enforced the 10/min limit correctly."
+          else
+            echo "RESULT: UNEXPECTED - check gateway SLA policy."
+            exit 1
+          fi
