@@ -1,58 +1,98 @@
-#!/bin/bash
+name: "L2: Traffic Protection (Rate Limiting / SLA)"
 
-# --- Configuration ---
-URL="https://api.eis-poc-gateway.com/api/mtoapi"
-CERT_PATH="./certs/client.pem"
-KEY_PATH="./certs/client.key"
+on:
+  workflow_dispatch: # Allows manual trigger from the Actions tab
+  push:
+    branches: [ main ]
 
-# Colors for Demo
-CYAN='\033[0;36m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m'
+jobs:
+  connectivity-test:
+    name: Traffic Protection (Rate Limiting / SLA)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-# Helper: Simulated Expired JWT (You can also use a hardcoded string)
-# Format: Bearer <header>.<payload>.<signature>
-EXPIRED_JWT="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      - name: Layer 2 - Rate Limiting (regular client)
+        continue-on-error: true
+        run: |
+            # --- Configuration ---
+            URL="https://api.eis-poc-gateway.com/api/mtoapi"
+            CERT_PATH="./certs/client.pem"
+            KEY_PATH="./certs/client.key"
+            TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+            REQULAR_CLIENT_ID = "fd6a16c7a11d48038f1bc3147a0982a8";
+            
+            echo "--------------------------------------------------"
+            echo "   DEMO: LAYER 2 - Rate Limiting (regular client)        "
+            echo "--------------------------------------------------"
+                   
+            TOKEN=$(curl -s "$TOKEN_URL")
+            echo "Request Header:"
+            echo "Authorization: Bearer $TOKEN"
+             echo "client-id: $REGULAR_CLIENT_ID"
+            
+            RAW_OUTPUT=$(curl -k -i -s \
+                --cert "$CERT_PATH" --key "$KEY_PATH" \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                -H "client-id: $REGULAR_CLIENT_ID" \
+                -d '{"opcNumber": "B98765432109"}' \
+                -w "\nHTTP_STATUS:%{http_code}" \
+                "$URL")
+            
+            STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
+            BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
+            
+            if [ "$STATUS" -eq 200 ]; then
+                echo "SUCCESS: Request accepted (200 OK)."
+            else
+                echo "FAILURE: Request returned $STATUS."
+            fi
+            
+            echo "--------------------------------------------------"
+            echo "RESPONSE:"
+            echo "$BODY"
+            echo "--------------------------------------------------"
 
-clear
-echo -e "${CYAN}--------------------------------------------------${NC}"
-echo -e "${CYAN}   DEMO: LAYER 1 - IDENTITY CONTROL (JWT)        ${NC}"
-echo -e "${CYAN}--------------------------------------------------${NC}"
-
-# STEP 1: Prove mTLS works (Network Layer)
-echo -e "${YELLOW}[SCENARIO 1] Network Trust check...${NC}"
-echo "Running curl with valid mTLS certs but NO JWT..."
-M_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" \
-    --cert "$CERT_PATH" --key "$KEY_PATH" "$URL")
-
-echo -e "Result: Network Connection ${GREEN}SUCCESSFUL${NC} (Status: $M_STATUS)"
-echo "Note: The Gateway accepted the mTLS handshake but rejected the identity."
-
-# STEP 2: Prove JWT Expiry Rejection (Identity Layer)
-echo -e "\n${YELLOW}[SCENARIO 2] Testing Expired JWT...${NC}"
-echo "Sending request with Valid mTLS + Expired Bearer Token..."
-
-RAW_OUTPUT=$(curl -k -i -s \
-    --cert "$CERT_PATH" --key "$KEY_PATH" \
-    -H "Authorization: $EXPIRED_JWT" \
-    -H "Content-Type: application/json" \
-    -d '{"opcNumber": "A123456789"}' \
-    -w "\nHTTP_STATUS:%{http_code}" \
-    "$URL")
-
-STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
-BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
-
-if [ "$STATUS" -eq 401 ]; then
-    echo -e "${GREEN}SUCCESS: Request Rejected with 401 Unauthorized.${NC}"
-    echo -e "Reason: Flex Gateway JWT Validation Policy detected expired 'exp' claim."
-else
-    echo -e "${RED}FAILURE: Request returned $STATUS instead of 401.${NC}"
-fi
-
-echo -e "\n${CYAN}--------------------------------------------------${NC}"
-echo "GATEWAY ERROR RESPONSE:"
-echo "$BODY"
-echo -e "${CYAN}--------------------------------------------------${NC}"
+      - name: Layer 1 - JWT Validation (valid token)
+        continue-on-error: true
+        run: |
+            # --- Configuration ---
+            URL="https://api.eis-poc-gateway.com/api/mtoapi"
+            CERT_PATH="./certs/client.pem"
+            KEY_PATH="./certs/client.key"
+            TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+            PREMIUM_CLIENT_ID = "fd6a16c7a11d48038f1bc3147a0982a8";
+            
+            echo "--------------------------------------------------"
+            echo "   DEMO: LAYER 1 - IDENTITY CONTROL (JWT VALIDATION)        "
+            echo "--------------------------------------------------"
+            
+            TOKEN=$(curl -s "$TOKEN_URL")
+            echo "Request Header:"
+            echo "Authorization: Bearer $TOKEN"
+            echo "client-id: $PREMIUM_CLIENT_ID"
+            
+            RAW_OUTPUT=$(curl -k -i -s \
+                --cert "$CERT_PATH" --key "$KEY_PATH" \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                -H "client-id: $PREMIUM_CLIENT_ID" \
+                -d '{"opcNumber": "B98765432109"}' \
+                -w "\nHTTP_STATUS:%{http_code}" \
+                "$URL")
+            
+            STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
+            BODY=$(echo "$RAW_OUTPUT" | sed '/HTTP_STATUS:/d' | sed '1,/^\r\{0,1\}$/d')
+            
+            if [ "$STATUS" -eq 200 ]; then
+                echo "SUCCESS: Request accepted (200 OK)."
+            else
+                echo "FAILURE: Request returned $STATUS."
+            fi
+            
+            echo "--------------------------------------------------"
+            echo "RESPONSE:"
+            echo "$BODY"
+            echo "--------------------------------------------------"    
