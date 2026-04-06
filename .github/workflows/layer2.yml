@@ -16,15 +16,14 @@ jobs:
       - name: Layer 2 - Rate Limiting (regular client)
         continue-on-error: true
         run: |
-            # --- Configuration ---
             URL="https://api.eis-poc-gateway.com/api/mtoapi"
             CERT_PATH="./certs/client.pem"
             KEY_PATH="./certs/client.key"
             TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
-            REQULAR_CLIENT_ID = "fd6a16c7a11d48038f1bc3147a0982a8"
+            REQULAR_CLIENT_ID="fd6a16c7a11d48038f1bc3147a0982a8"
             
             echo "--------------------------------------------------"
-            echo "   DEMO: LAYER 2 - Rate Limiting (regular client)        "
+            echo "   DEMO: LAYER 2 - Rate Limiting (regular client)      "
             echo "--------------------------------------------------"
                    
             TOKEN=$(curl -s "$TOKEN_URL")
@@ -63,10 +62,10 @@ jobs:
             CERT_PATH="./certs/client.pem"
             KEY_PATH="./certs/client.key"
             TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
-            PREMIUM_CLIENT_ID = "fd6a16c7a11d48038f1bc3147a0982a8"
+            PREMIUM_CLIENT_ID="fd6a16c7a11d48038f1bc3147a0982a8"
             
             echo "--------------------------------------------------"
-            echo "   DEMO: LAYER 1 - IDENTITY CONTROL (JWT VALIDATION)        "
+            echo "   DEMO: LAYER 2 - Rate Limiting (premium client)      "
             echo "--------------------------------------------------"
             
             TOKEN=$(curl -s "$TOKEN_URL")
