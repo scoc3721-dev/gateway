@@ -17,7 +17,7 @@ jobs:
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
           CERT_PATH="./certs/client.pem"
           KEY_PATH="./certs/client.key"
-          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token"
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
           REGULAR_CLIENT_ID="fd6a16c7a11d48038f1bc3147a0982a8"
           TOTAL_REQUESTS=8
           PASS=0
@@ -78,7 +78,7 @@ jobs:
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
           CERT_PATH="./certs/client.pem"
           KEY_PATH="./certs/client.key"
-          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token"
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
           PREMIUM_CLIENT_ID="fd6a16c7a11d48038f1bc3147a0982a8"
           TOTAL_REQUESTS=13
           PASS=0
