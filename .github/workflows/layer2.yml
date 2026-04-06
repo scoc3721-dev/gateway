@@ -39,8 +39,8 @@ jobs:
               --cert "$CERT_PATH" --key "$KEY_PATH" \
               -H "Authorization: Bearer $TOKEN" \
               -H "Content-Type: application/json" \
-              -H "client-id: $REGULAR_CLIENT_ID" \
-              -H "client-secret: $REGULAR_CLIENT_SECRET" \
+              -H "client_id: $REGULAR_CLIENT_ID" \
+              -H "client_secret: $REGULAR_CLIENT_SECRET" \
               -d '{"opcNumber": "B98765432109"}' \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
@@ -81,7 +81,7 @@ jobs:
           CERT_PATH="./certs/client.pem"
           KEY_PATH="./certs/client.key"
           TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
-          PREMIUM_CLIENT_ID="fd6a16c7a11d48038f1bc3147a0982a8"
+          PREMIUM_CLIENT_ID="8f4f955ad7504106948cc5aa1a3a3d7d"
           PREMIUM_CLIENT_SECRET="eA9eb031A0bc4d64943d077747999f91"
           TOTAL_REQUESTS=13
           PASS=0
@@ -102,8 +102,8 @@ jobs:
               --cert "$CERT_PATH" --key "$KEY_PATH" \
               -H "Authorization: Bearer $TOKEN" \
               -H "Content-Type: application/json" \
-              -H "client-id: $PREMIUM_CLIENT_ID" \
-              -H "client-secret: $PREMIUM_CLIENT_SECRET" \
+              -H "client_id: $PREMIUM_CLIENT_ID" \
+              -H "client_secret: $PREMIUM_CLIENT_SECRET" \
               -d '{"opcNumber": "B98765432109"}' \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
