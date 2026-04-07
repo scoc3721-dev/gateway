@@ -33,7 +33,7 @@ jobs:
 
           # Ensure the curl command is on one line or uses proper line continuations
           # We check the response headers (-i) and status code (-w)
-          RAW_OUTPUT=$(curl -k -i -s \
+          RAW_OUTPUT=$(curl -k -i \
             --cert "$CERT" \
             --key "$KEY" \
             -H "Content-Type: application/json" \
