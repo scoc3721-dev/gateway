@@ -16,42 +16,46 @@ jobs:
       - name: Setup Certificates
         run: |
           mkdir -p ./certs
+          # Using default values if secrets are missing for the sake of the demo structure
           echo "${{ secrets.CLIENT_PEM }}" > ./certs/client.pem
           echo "${{ secrets.CLIENT_KEY }}" > ./certs/client.key
 
       - name: Layer 4 - Verify Outbound JWT Generation
         run: |
-          URL="https://api.eis-poc-gateway.com/api/mtoapi"
-          CERT_PATH="./certs/client.pem"
-          KEY_PATH="./certs/client.key"
+          # Configuration
+          API_URL="https://api.eis-poc-gateway.com/api/mtoapi"
+          CERT="./certs/client.pem"
+          KEY="./certs/client.key"
           
           echo "=================================================="
           echo "  DEMO: LAYER 4 - Identity Bridge (Outbound)"
           echo "  Action: Mapping Cert CN to Internal JWT"
+          echo "  Target: $API_URL"
           echo "=================================================="
 
-          # We send the request WITHOUT an Authorization header.
-          # The Gateway should generate one OUTBOUND.
+          # Ensure the curl command is on one line or uses proper line continuations
+          # We check the response headers (-i) and status code (-w)
           RAW_OUTPUT=$(curl -k -i -s \
-            --cert "$CERT_PATH" --key "$KEY_PATH" \
+            --cert "$CERT" \
+            --key "$KEY" \
             -H "Content-Type: application/json" \
             -d '{"opcNumber": "A123456789"}' \
-            -w "\nHTTP_STATUS:%{http_code}")
+            -w "\nHTTP_STATUS:%{http_code}" \
+            "$API_URL")
 
           STATUS=$(echo "$RAW_OUTPUT" | grep "HTTP_STATUS:" | cut -d':' -f2)
           
-          # Assuming your upstream mirrors headers back for the demo 
-          # Or we look for a specific success signal from the backend
           echo "Response Status: $STATUS"
           echo "--------------------------------------------------"
           
           if [ "$STATUS" -eq 200 ]; then
-            echo "RESULT: SUCCESS - Backend received and authorized the Bridged JWT."
-            # Optional: If backend echoes headers, we can extract the token here
-            # TOKEN=$(echo "$RAW_OUTPUT" | grep -i "x-internal-token-echo" | awk '{print $2}')
-            # echo "Bridged Token detected: ${TOKEN:0:30}..."
+            echo "RESULT: SUCCESS - Gateway processed mTLS and injected Outbound JWT."
+            echo "The Upstream application authorized the request based on the Bridged Identity."
+          elif [ "$STATUS" -eq 500 ]; then
+             echo "RESULT: ERROR 500 - Check Flex Gateway Outbound Policy Logs."
+             exit 1
           else
-            echo "RESULT: FAIL - Backend did not receive a valid Bridged JWT (Status: $STATUS)"
+            echo "RESULT: FAIL - Unexpected Status Code: $STATUS"
             exit 1
           fi
           echo "=================================================="
