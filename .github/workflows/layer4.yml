@@ -37,7 +37,7 @@ jobs:
             --cert "$CERT" \
             --key "$KEY" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $TOKEN" \
+            -H "Authorization_1: Bearer $TOKEN" \
             -H "client_id: $REGULAR_CLIENT_ID" \
             -H "client_secret: $REGULAR_CLIENT_SECRET" \
             -d '{"opcNumber": "B98765432109"}' \
