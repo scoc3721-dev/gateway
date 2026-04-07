@@ -20,7 +20,7 @@ jobs:
           CERT="./certs/client.pem"
           KEY="./certs/client.key"
 
-          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token1"
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
           TOKEN=$(curl -s "$TOKEN_URL")
           
           echo "=================================================="
