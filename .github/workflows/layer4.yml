@@ -40,7 +40,7 @@ jobs:
             -H "Authorization: Bearer $TOKEN" \
             -H "client_id: $REGULAR_CLIENT_ID" \
             -H "client_secret: $REGULAR_CLIENT_SECRET" \
-            -d '{"opcNumber": "A123456789"}' \
+            -d '{"opcNumber": "B98765432109"}' \
             -w "\nHTTP_STATUS:%{http_code}" \
             "$API_URL")
 
