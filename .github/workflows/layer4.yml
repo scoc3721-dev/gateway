@@ -17,7 +17,7 @@ jobs:
         run: |
           # Configuration
           API_URL="https://api.eis-poc-gateway.com/api/mtoapi"
-          CERT="./certs/client.pem"
+          CERT="./certs/regular-client.pem"
           KEY="./certs/client.key"
           REGULAR_CLIENT_ID="fd6a16c7a11d48038f1bc3147a0982a8"
           REGULAR_CLIENT_SECRET="79AC5CAE6c83431CB422A61BA4e6e156"          
@@ -37,9 +37,7 @@ jobs:
             --cert "$CERT" \
             --key "$KEY" \
             -H "Content-Type: application/json" \
-            -H "Authorization_1: Bearer $TOKEN" \
-            -H "client_id: $REGULAR_CLIENT_ID" \
-            -H "client_secret: $REGULAR_CLIENT_SECRET" \
+            -H "Authorization: Bearer $TOKEN" \
             -d '{"opcNumber": "B98765432109"}' \
             -w "\nHTTP_STATUS:%{http_code}" \
             "$API_URL")
