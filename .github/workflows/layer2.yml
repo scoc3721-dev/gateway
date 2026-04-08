@@ -39,8 +39,6 @@ jobs:
               --cert "$CERT_PATH" --key "$KEY_PATH" \
               -H "Authorization: Bearer $TOKEN" \
               -H "Content-Type: application/json" \
-              -H "client_id: $REGULAR_CLIENT_ID" \
-              -H "client_secret: $REGULAR_CLIENT_SECRET" \
               -d '{"opcNumber": "B98765432109"}' \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
@@ -102,8 +100,6 @@ jobs:
               --cert "$CERT_PATH" --key "$KEY_PATH" \
               -H "Authorization: Bearer $TOKEN" \
               -H "Content-Type: application/json" \
-              -H "client_id: $PREMIUM_CLIENT_ID" \
-              -H "client_secret: $PREMIUM_CLIENT_SECRET" \
               -d '{"opcNumber": "B98765432109"}' \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
