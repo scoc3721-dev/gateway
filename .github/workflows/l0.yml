@@ -1,0 +1,57 @@
+name: mTLS Connectivity Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  connectivity-check:
+    name: "mTLS Test: ${{ matrix.scenario.name }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - id: "no_cert"
+            name: "No Client Certificate"
+            expected_status: "403"
+            headers: ""
+            
+          - id: "invalid_cert"
+            name: "Invalid Certificate"
+            expected_status: "403"
+            headers: "-H 'X-SSL-Client-Verify: FAILED' -H 'X-SSL-Client-S-DN: CN=malicious.user'"
+            
+          - id: "regular_client"
+            name: "Regular Client"
+            expected_status: "200"
+            headers: "-H 'X-SSL-Client-Verify: SUCCESS' -H 'X-SSL-Client-S-DN: CN=user01.regular.svc'"
+            
+          - id: "premium_client"
+            name: "Premium Client"
+            expected_status: "200"
+            headers: "-H 'X-SSL-Client-Verify: SUCCESS' -H 'X-SSL-Client-S-DN: CN=user02.premium.svc'"
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Execute Security Probe
+        env:
+          TARGET_URL: "https://api.yourdomain.com/v1/health" # Replace with your actual endpoint
+        run: |
+          echo "Running Scenario: ${{ matrix.scenario.name }}"
+          
+          # Perform the request using the matrix-defined headers
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" ${{ matrix.scenario.headers }} "$TARGET_URL")
+          
+          echo "Received Status: $RESPONSE"
+          echo "Expected Status: ${{ matrix.scenario.expected_status }}"
+          
+          if [ "$RESPONSE" != "${{ matrix.scenario.expected_status }}" ]; then
+            echo "❌ Validation Failed: Expected ${{ matrix.scenario.expected_status }} but got $RESPONSE"
+            exit 1
+          else
+            echo "✅ Validation Succeeded"
+          fi
