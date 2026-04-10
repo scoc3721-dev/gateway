@@ -18,36 +18,30 @@ jobs:
       - name: "Task 1: No Client Cert (OpenSSL)"
         run: |
           echo "--- Testing connection with NO certificate ---"
-          # -quiet prevents full cert dump, focusing on the result
-          echo "Q" | openssl s_client -connect $TARGET_HOST:$TARGET_PORT -quiet 2>&1 | tee task1.log || true
-          if grep -q "verify error" task1.log; then echo "Handshake failed as expected."; fi
+          curl -v -k -I https://api.eis-poc-gateway.com/api/mtoapi 2>&1 | tee curl_output.txt || true
+          
+          if grep -q "alert certificate required" curl_output.txt; then
+            echo " Ingress correctly rejected request with 'TLS alert: certificate required'."
+          elif grep -q "400" curl_output.txt; then
+            echo " Ingress rejected the request with HTTP 400."
+          else
+            echo "ERROR: The connection was not rejected as expected. Check LB settings."
+          fi
 
       - name: "Task 2: Invalid Client Cert (OpenSSL)"
         run: |
           echo "--- Testing with Invalid/Expired Certificate ---"
-          echo "Q" | openssl s_client -connect $TARGET_HOST:$TARGET_PORT \
-            -cert ./certs/clientA.pem \
-            -key ./certs/clientB.key \
-            -msg 2>&1 | grep -iE "Alert|error|Handshake" || true
-
+          curl -v -k -I --cert ./certs/clientA.pem --key ./certs/clientA.key \
+            https://api.eis-poc-gateway.com/api/mtoapi
+          
       - name: "Task 3: Regular Client Cert (OpenSSL)"
         run: |
           echo "--- Verifying Regular Client Handshake ---"
-          # Check 'Acceptable client certificate CA names' sent by the server
-          echo "Q" | openssl s_client -connect $TARGET_HOST:$TARGET_PORT \
-            -cert ./certs/regular-client.pem \
-            -key ./certs/client.key \
-            -showcerts | grep -A 5 "Acceptable client certificate CA names" || true
-          
-          echo "--- Connection Status ---"
-          echo "Q" | openssl s_client -connect $TARGET_HOST:$TARGET_PORT \
-            -cert ./certs/regular-client.pem \
-            -key ./certs/client.key 2>/dev/null 
+          curl -v -k -I --cert ./certs/regular-client.pem --key ./certs/client.key \
+            https://api.eis-poc-gateway.com/api/mtoapi
 
       - name: "Task 4: Premium Client Cert (OpenSSL)"
         run: |
           echo "--- Verifying Premium Client Handshake ---"
-          # This verifies the cipher suite and the successful verification of the chain
-          echo "Q" | openssl s_client -connect $TARGET_HOST:$TARGET_PORT \
-            -cert ./certs/premium-client.pem \
-            -key ./certs/client.key 2>&1 
+          curl -v -k -I --cert ./certs/premium-client.pem --key ./certs/client.key \
+            https://api.eis-poc-gateway.com/api/mtoapi 
