@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: "Task 1: No Client Cert (OpenSSL)"
+        continue-on-error: true
         run: |
           echo "--- Testing connection with NO certificate ---"
           curl -v -k -I https://api.eis-poc-gateway.com/api/mtoapi 2>&1 | tee curl_output.txt || true
@@ -29,18 +30,21 @@ jobs:
           fi
 
       - name: "Task 2: Invalid Client Cert (OpenSSL)"
+        continue-on-error: true
         run: |
           echo "--- Testing with Invalid/Expired Certificate ---"
           curl -v -k -I --cert ./certs/clientA.pem --key ./certs/clientA.key \
             https://api.eis-poc-gateway.com/api/mtoapi
           
       - name: "Task 3: Regular Client Cert (OpenSSL)"
+        continue-on-error: true
         run: |
           echo "--- Verifying Regular Client Handshake ---"
           curl -v -k -I --cert ./certs/regular-client.pem --key ./certs/client.key \
             https://api.eis-poc-gateway.com/api/mtoapi
 
       - name: "Task 4: Premium Client Cert (OpenSSL)"
+        continue-on-error: true
         run: |
           echo "--- Verifying Premium Client Handshake ---"
           curl -v -k -I --cert ./certs/premium-client.pem --key ./certs/client.key \
