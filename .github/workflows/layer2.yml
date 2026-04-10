@@ -1,4 +1,4 @@
-name: "L2: Traffic Protection (Rate Limiting / SLA)"
+name: "Traffic Protection (Rate Limiting / SLA)"
 on:
   workflow_dispatch:
   push:
