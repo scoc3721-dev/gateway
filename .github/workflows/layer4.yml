@@ -1,4 +1,4 @@
-name: "L4: Identity Bridge (Outbound JWT Generation)"
+name: "Identity Bridge (Outbound JWT Generation)"
 
 on:
   workflow_dispatch:
