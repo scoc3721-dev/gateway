@@ -1,4 +1,4 @@
-name: "L3: Message Integrity Schema Validation"
+name: "Message Integrity Schema Validation"
 
 on:
   workflow_dispatch:
