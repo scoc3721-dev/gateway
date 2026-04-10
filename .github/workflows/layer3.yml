@@ -22,7 +22,10 @@ jobs:
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
           CERT_PATH="./certs/client.pem"
           KEY_PATH="./certs/client.key"
-          
+
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+          TOKEN=$(curl -s "$TOKEN_URL")
+
           echo "-------------------------------------"
           echo "RQUEST URL: $URL"
           echo "PAYLOAD: $PAYLOAD"
@@ -36,6 +39,7 @@ jobs:
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
               -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $TOKEN" \
               -d "$PAYLOAD" \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
@@ -63,6 +67,9 @@ jobs:
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
           CERT_PATH="./certs/client.pem"
           KEY_PATH="./certs/client.key"
+
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+          TOKEN=$(curl -s "$TOKEN_URL")
           
           echo "-------------------------------------"
           echo "RQUEST URL: $URL"
@@ -74,6 +81,7 @@ jobs:
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
               -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $TOKEN" \
               -d "$PAYLOAD" \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
@@ -98,6 +106,9 @@ jobs:
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
           CERT_PATH="./certs/client.pem"
           KEY_PATH="./certs/client.key"
+
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+          TOKEN=$(curl -s "$TOKEN_URL")
           
           echo "-------------------------------------"
           echo "RQUEST URL: $URL"
@@ -109,6 +120,7 @@ jobs:
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
               -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $TOKEN" \
               -d "$PAYLOAD" \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
@@ -130,6 +142,9 @@ jobs:
           PAYLOAD='{"opcNumber": "B98765432109"}'
           CERT_PATH="./certs/client.pem"
           KEY_PATH="./certs/client.key"
+
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+          TOKEN=$(curl -s "$TOKEN_URL")
           
           echo "-------------------------------------"
           echo "RQUEST URL: $URL"
@@ -141,6 +156,7 @@ jobs:
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
               -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $TOKEN" \
               -d "$PAYLOAD" \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
