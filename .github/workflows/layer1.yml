@@ -20,14 +20,14 @@ jobs:
             URL="https://api.eis-poc-gateway.com/api/mtoapi"
             CERT_PATH="./certs/regular-client.pem"
             KEY_PATH="./certs/client.key"
-            TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+            TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token1"
 
             echo "--------------------------------------------------"
             echo "   DEMO: LAYER 1 - IDENTITY CONTROL (JWT VALIDATION)        "
             echo "--------------------------------------------------"
             
             # STEP 1: Get invalid JWT from token provider
-            echo "[INFO] Fetching Expired JWT token from provider..."
+            echo "[INFO] sending Expired JWT token ..."
             
             TOKEN=$(curl -s "$TOKEN_URL")
             echo "Request Header:"
@@ -69,7 +69,7 @@ jobs:
             echo "--------------------------------------------------"
             
             # STEP 1: Get invalid JWT from token provider
-            echo "[INFO] Fetching Expired JWT token from provider..."
+            echo "[INFO] Sending Expired JWT token ..."
             
             TOKEN=$(curl -s "$TOKEN_URL")
             echo "Request Header:"
