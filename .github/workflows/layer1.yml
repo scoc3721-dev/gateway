@@ -1,4 +1,4 @@
-name: "L1: Identity Control (JWT Validation)"
+name: "Hybrid mTLS & JWT Authentication"
 
 on:
   workflow_dispatch: # Allows manual trigger from the Actions tab
@@ -7,7 +7,7 @@ on:
 
 jobs:
   connectivity-test:
-    name: mTLS Connectivity Check
+    name: Hybrid mTLS & JWT Authentication
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
