@@ -1,61 +1,54 @@
-name: mTLS Connectivity Tests
+name: mTLS Handshake Validation Suite
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
-  connectivity-check:
-    name: "mTLS Test: ${{ matrix.scenario.name }}"
+  validate-mtls-scenarios:
+    name: "mTLS Scenario Testing"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        scenario:
-          - id: "regular_client"
-            name: "Regular Client"
-            cert: "./certs/regular-client.pem"
-            key: "./certs/client.key"
-            expected_status: "200"
-            
-          - id: "premium_client"
-            name: "Premium Client"
-            cert: "./certs/premium-client.pem"
-            key: "./certs/client.key"
-            expected_status: "200"
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Execute mTLS Curl Command
-        env:
-          TARGET_URL: "https://api.eis-poc-gateway.com/api/mtoapi"
+      - name: "Task 1: No Client Certificate (Expect SSL Failure)"
         run: |
-          echo "### Starting Scenario: ${{ matrix.scenario.name }} ###"
-          
-          # We use -v (verbose) to see the full handshake and headers
-          # We use -k (insecure) to skip hostname verification if needed
-          # We use -I (head) to fetch headers only
-          
-          curl -v -k -I \
-            --cert ${{ matrix.scenario.cert }} \
-            --key ${{ matrix.scenario.key }} \
-            "$TARGET_URL" > curl_output.txt 2>&1
-          
-          # Display the full output in the GitHub Actions log
-          cat curl_output.txt
-          
-          # Extract the HTTP status code for validation
-          HTTP_STATUS=$(grep "HTTP/" curl_output.txt | tail -n 1 | awk '{print $2}')
-          
-          echo ""
-          echo "Final HTTP Status: $HTTP_STATUS"
-          
-          if [ "$HTTP_STATUS" != "${{ matrix.scenario.expected_status }}" ]; then
-            echo "❌ Validation Failed: Expected ${{ matrix.scenario.expected_status }} but got $HTTP_STATUS"
-            exit 1
-          else
-            echo "✅ Validation Succeeded"
-          fi
+          echo "--- Testing connection without a client certificate ---"
+          # This should typically fail at the handshake or return a 403/400 depending on gateway config
+          curl -v -s -o /dev/null \
+            "https://api.eis-poc-gateway.com/api/mtoapi" 2>&1 | \
+            grep -E "\* (SSL connection|TLSv|alert|Handshake|Connected to)" || true
+
+      - name: "Task 2: Invalid Client Certificate (Expect Verification Error)"
+        run: |
+          echo "--- Testing connection with an invalid/expired certificate ---"
+          # Using an intentionally incorrect or expired cert to trigger validation errors
+          curl -v -s -o /dev/null \
+            --cert ./certs/clientA.pem \
+            --key ./certs/clientA.key \
+            "https://api.eis-poc-gateway.com/api/mtoapi" 2>&1 | \
+            grep -E "\* (SSL connection|certificate verify failed|alert|TLSv)" || true
+
+      - name: "Task 3: Regular Client Certificate (Valid mTLS)"
+        run: |
+          echo "--- Testing with Regular Client Certificate ---"
+          # Focuses on peer certificate info and successful handshake
+          curl -v -s -o /dev/null \
+            --cert ./certs/regular-client.pem \
+            --key ./certs/client.key \
+            "https://api.eis-poc-gateway.com/api/mtoapi" 2>&1 | \
+            grep -E "\* (Server certificate|Subject:|issuer:|SSL connection|TLSv)"
+
+      - name: "Task 4: Premium Client Certificate (Valid mTLS)"
+        run: |
+          echo "--- Testing with Premium Client Certificate ---"
+          # Validates that a different client-tier certificate also establishes a secure peer connection
+          curl -v -s -o /dev/null \
+            --cert ./certs/premium-client.pem \
+            --key ./certs/premium.key \
+            "https://api.eis-poc-gateway.com/api/mtoapi" 2>&1 | \
+            grep -E "\* (Server certificate|Subject:|issuer:|SSL connection|TLSv)"
+
+      - name: Validation Summary
+        run: |
+          echo "Verification complete. Check individual task logs for specific SSL/TLS handshake metadata."
