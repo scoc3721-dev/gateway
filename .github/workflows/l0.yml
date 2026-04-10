@@ -15,7 +15,7 @@ jobs:
         run: |
           echo "--- Testing connection without a client certificate ---"
           # This should typically fail at the handshake or return a 403/400 depending on gateway config
-          curl -v -s -o /dev/null \
+          curl -v -s -k -o /dev/null \
             "https://api.eis-poc-gateway.com/api/mtoapi" 
 
       - name: "Task 2: Invalid Client Certificate (Expect Verification Error)"
