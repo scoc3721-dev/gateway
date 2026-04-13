@@ -1,61 +1,42 @@
-name: mTLS Connectivity Tests
+name: OTCS Auth Test
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
+    inputs:
+      username:
+        description: "OTCS Username"
+        required: true
+        default: "admin"
+      password:
+        description: "OTCS Password"
+        required: true
+      otcs_url:
+        description: "OTCS Base URL"
+        required: true
+        default: "http://localhost"
 
 jobs:
-  connectivity-check:
-    name: "mTLS Test: ${{ matrix.scenario.name }}"
+  get-ticket:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        scenario:
-          - id: "regular_client"
-            name: "Regular Client"
-            cert: "./certs/regular-client.pem"
-            key: "./certs/client.key"
-            expected_status: "200"
-            
-          - id: "premium_client"
-            name: "Premium Client"
-            cert: "./certs/premium-client.pem"
-            key: "./certs/client.key"
-            expected_status: "200"
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Install jq
+        run: sudo apt-get install -y jq
 
-      - name: Execute mTLS Curl Command
-        env:
-          TARGET_URL: "https://api.eis-poc-gateway.com/api/mtoapi"
+      - name: Call OTCS Auth API
+        id: auth
         run: |
-          echo "### Starting Scenario: ${{ matrix.scenario.name }} ###"
-          
-          # We use -v (verbose) to see the full handshake and headers
-          # We use -k (insecure) to skip hostname verification if needed
-          # We use -I (head) to fetch headers only
-          
-          curl -v -k -I \
-            --cert ${{ matrix.scenario.cert }} \
-            --key ${{ matrix.scenario.key }} \
-            "$TARGET_URL" > curl_output.txt 2>&1
-          
-          # Display the full output in the GitHub Actions log
-          cat curl_output.txt
-          
-          # Extract the HTTP status code for validation
-          HTTP_STATUS=$(grep "HTTP/" curl_output.txt | tail -n 1 | awk '{print $2}')
-          
-          echo ""
-          echo "Final HTTP Status: $HTTP_STATUS"
-          
-          if [ "$HTTP_STATUS" != "${{ matrix.scenario.expected_status }}" ]; then
-            echo "❌ Validation Failed: Expected ${{ matrix.scenario.expected_status }} but got $HTTP_STATUS"
-            exit 1
-          else
-            echo "✅ Validation Succeeded"
-          fi
+          RESPONSE=$(curl -s -X POST "${{ inputs.otcs_url }}/otcs/cs.exe/api/v1/auth" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "username=${{ inputs.username }}&password=${{ inputs.password }}")
+
+          echo "Response:"
+          echo "$RESPONSE"
+
+          TICKET=$(echo "$RESPONSE" | jq -r '.ticket')
+
+          echo "ticket=$TICKET" >> $GITHUB_OUTPUT
+
+      - name: Print Ticket
+        run: |
+          echo "OTCS Ticket: ${{ steps.auth.outputs.ticket }}"
