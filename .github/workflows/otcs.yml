@@ -26,7 +26,7 @@ jobs:
       - name: Call OTCS Auth API
         id: auth
         run: |
-          RESPONSE=$(curl -s -X POST "${{ inputs.otcs_url }}/otcs/cs.exe/api/v1/auth" \
+          RESPONSE=$(curl -s -X POST "${{ inputs.otcs_url }}/cs.exe/api/v1/auth" \
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "username=${{ inputs.username }}&password=${{ inputs.password }}")
 
