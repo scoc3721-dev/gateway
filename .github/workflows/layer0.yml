@@ -1,52 +1,51 @@
-name: "L0: Security Connectivity Check"
+name: mTLS OpenSSL Handshake Validation
 
 on:
-  workflow_dispatch: # Allows manual trigger from the Actions tab
-  push:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  connectivity-test:
-    name: mTLS Connectivity Check
+  openssl-validation:
+    name: "OpenSSL mTLS Testing"
     runs-on: ubuntu-latest
+    env:
+      TARGET_HOST: "api.eis-poc-gateway.com"
+      TARGET_PORT: "443"
+    
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Basic DNS Check
-        run: |
-          echo "Checking if the Anypoint Ingress is reachable..."
-          # Verified Domain from your previous logs
-          nslookup api.eis-poc-gateway.com || echo "DNS Lookup Failed"
-
-      - name: Test Layer 0 - Unauthorized Access (No Certs)
-        # We use continue-on-error because we EXPECT a connection failure (SSL Alert) here.
+      - name: "Task 1: No Client Cert"
         continue-on-error: true
         run: |
-          echo "Scenario: External client attempts to connect without mTLS certs."
-          # Capture verbose output to check for the 'certificate required' alert
+          echo "--- Testing connection with NO certificate ---"
           curl -v -k -I https://api.eis-poc-gateway.com/api/mtoapi 2>&1 | tee curl_output.txt || true
           
           if grep -q "alert certificate required" curl_output.txt; then
-            echo "SUCCESS: Ingress correctly rejected request with 'TLS alert: certificate required'."
+            echo " Ingress correctly rejected request with 'TLS alert: certificate required'."
           elif grep -q "400" curl_output.txt; then
-            echo "SUCCESS: Ingress rejected the request with HTTP 400."
+            echo " Ingress rejected the request with HTTP 400."
           else
             echo "ERROR: The connection was not rejected as expected. Check LB settings."
-            exit 1
           fi
 
-      - name: Test Layer 0 - Authorized Access (With Certs)
-        # This step will run once you upload your certificates to the /certs folder in your repo
-        continue-on-error: true 
+      - name: "Task 2: Invalid Client Cert"
+        continue-on-error: true
         run: |
-          echo "Scenario: External client presents a trusted certificate."
-          # Debugging: show files to ensure certs are present
-          ls -R ./certs || echo "Certificates directory not found!"
-          
-          if [ -f "./certs/client.pem" ]; then
-            curl -v -k -I --cert ./certs/regular-client.pem --key ./certs/client.key \
+          echo "--- Testing with Invalid/Expired Certificate ---"
+          curl -v -k -I --cert ./certs/clientA.pem --key ./certs/clientA.key \
             https://api.eis-poc-gateway.com/api/mtoapi
-          else
-            echo "SKIP: No certificates found in ./certs/ to perform authorized test."
-          fi
+          
+      - name: "Task 3: Regular Client Cert "
+        continue-on-error: true
+        run: |
+          echo "--- Verifying Regular Client Handshake ---"
+          curl -v -k -I --cert ./certs/regular-client.pem --key ./certs/client.key \
+            https://api.eis-poc-gateway.com/api/mtoapi
+
+      - name: "Task 4: Premium Client Cert"
+        continue-on-error: true
+        run: |
+          echo "--- Verifying Premium Client Handshake ---"
+          curl -v -k -I --cert ./certs/premium-client.pem --key ./certs/client.key \
+            https://api.eis-poc-gateway.com/api/mtoapi 

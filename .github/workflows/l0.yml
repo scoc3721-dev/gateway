@@ -1,42 +1,53 @@
-name: OTCS Auth Test
+name: mTLS Handshake Validation Suite
 
 on:
   workflow_dispatch:
-    inputs:
-      username:
-        description: "OTCS Username"
-        required: true
-        default: "admin"
-      password:
-        description: "OTCS Password"
-        required: true
-      otcs_url:
-        description: "OTCS Base URL"
-        required: true
-        default: "http://localhost"
 
 jobs:
-  get-ticket:
+  validate-mtls-scenarios:
+    name: "mTLS Scenario Testing"
     runs-on: ubuntu-latest
-
     steps:
-      - name: Install jq
-        run: sudo apt-get install -y jq
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Call OTCS Auth API
-        id: auth
+      - name: "Task 1: No Client Certificate (Expect SSL Failure)"
         run: |
-          RESPONSE=$(curl -s -X POST "${{ inputs.otcs_url }}/otcs/cs.exe/api/v1/auth" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "username=${{ inputs.username }}&password=${{ inputs.password }}")
+          echo "--- Testing connection without a client certificate ---"
+          # This should typically fail at the handshake or return a 403/400 depending on gateway config
+          curl -v -s -k -o /dev/null \
+            "https://api.eis-poc-gateway.com/api/mtoapi" 
 
-          echo "Response:"
-          echo "$RESPONSE"
-
-          TICKET=$(echo "$RESPONSE" | jq -r '.ticket')
-
-          echo "ticket=$TICKET" >> $GITHUB_OUTPUT
-
-      - name: Print Ticket
+      - name: "Task 2: Invalid Client Certificate (Expect Verification Error)"
         run: |
-          echo "OTCS Ticket: ${{ steps.auth.outputs.ticket }}"
+          echo "--- Testing connection with an invalid/expired certificate ---"
+          # Using an intentionally incorrect or expired cert to trigger validation errors
+          curl -v -s -o /dev/null \
+            --cert ./certs/clientA.pem \
+            --key ./certs/clientA.key \
+            "https://api.eis-poc-gateway.com/api/mtoapi" 2>&1 | \
+            grep -E "\* (SSL connection|certificate verify failed|alert|TLSv)" || true
+
+      - name: "Task 3: Regular Client Certificate (Valid mTLS)"
+        run: |
+          echo "--- Testing with Regular Client Certificate ---"
+          # Focuses on peer certificate info and successful handshake
+          curl -v -s -o /dev/null \
+            --cert ./certs/regular-client.pem \
+            --key ./certs/client.key \
+            "https://api.eis-poc-gateway.com/api/mtoapi" 2>&1 | \
+            grep -E "\* (Server certificate|Subject:|issuer:|SSL connection|TLSv)"
+
+      - name: "Task 4: Premium Client Certificate (Valid mTLS)"
+        run: |
+          echo "--- Testing with Premium Client Certificate ---"
+          # Validates that a different client-tier certificate also establishes a secure peer connection
+          curl -v -s -o /dev/null \
+            --cert ./certs/premium-client.pem \
+            --key ./certs/premium.key \
+            "https://api.eis-poc-gateway.com/api/mtoapi" 2>&1 | \
+            grep -E "\* (Server certificate|Subject:|issuer:|SSL connection|TLSv)"
+
+      - name: Validation Summary
+        run: |
+          echo "Verification complete. Check individual task logs for specific SSL/TLS handshake metadata."

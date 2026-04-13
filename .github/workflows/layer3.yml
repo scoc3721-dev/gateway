@@ -1,4 +1,4 @@
-name: "L3: Message Integrity Schema Validation"
+name: "Message Integrity Schema Validation"
 
 on:
   workflow_dispatch:
@@ -20,9 +20,12 @@ jobs:
           echo "Scenario: Sending an empty JSON object {}"
           PAYLOAD='{}'
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
-          CERT_PATH="./certs/client.pem"
+          CERT_PATH="./certs/regular-client.pem"
           KEY_PATH="./certs/client.key"
-          
+
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+          TOKEN=$(curl -s "$TOKEN_URL")
+
           echo "-------------------------------------"
           echo "RQUEST URL: $URL"
           echo "PAYLOAD: $PAYLOAD"
@@ -36,6 +39,7 @@ jobs:
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
               -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $TOKEN" \
               -d "$PAYLOAD" \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
@@ -61,8 +65,11 @@ jobs:
           echo "Scenario: Sending opcNumber with invalid characters (A123-456)"
           PAYLOAD='{"opcNumber": "A@6"}'
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
-          CERT_PATH="./certs/client.pem"
+          CERT_PATH="./certs/regular-client.pem"
           KEY_PATH="./certs/client.key"
+
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+          TOKEN=$(curl -s "$TOKEN_URL")
           
           echo "-------------------------------------"
           echo "RQUEST URL: $URL"
@@ -74,6 +81,7 @@ jobs:
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
               -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $TOKEN" \
               -d "$PAYLOAD" \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
@@ -96,8 +104,11 @@ jobs:
           echo "Scenario: Sending valid opcNumber with an extra 'hack' field."
           PAYLOAD='{"opcNumber": "A123456789", "hack": "true"}'
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
-          CERT_PATH="./certs/client.pem"
+          CERT_PATH="./certs/regular-client.pem"
           KEY_PATH="./certs/client.key"
+
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+          TOKEN=$(curl -s "$TOKEN_URL")
           
           echo "-------------------------------------"
           echo "RQUEST URL: $URL"
@@ -109,6 +120,7 @@ jobs:
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
               -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $TOKEN" \
               -d "$PAYLOAD" \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
@@ -128,8 +140,11 @@ jobs:
           echo "Scenario: Sending an correct ocpNumber in the request"
           URL="https://api.eis-poc-gateway.com/api/mtoapi"
           PAYLOAD='{"opcNumber": "B98765432109"}'
-          CERT_PATH="./certs/client.pem"
+          CERT_PATH="./certs/regular-client.pem"
           KEY_PATH="./certs/client.key"
+
+          TOKEN_URL="https://poc-jwt-provider-zm63hj.9d3fd9-1.can-c1.cloudhub.io/token2"
+          TOKEN=$(curl -s "$TOKEN_URL")
           
           echo "-------------------------------------"
           echo "RQUEST URL: $URL"
@@ -141,6 +156,7 @@ jobs:
               --cert "$CERT_PATH" \
               --key "$KEY_PATH" \
               -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $TOKEN" \
               -d "$PAYLOAD" \
               -w "\nHTTP_STATUS:%{http_code}" \
               "$URL")
