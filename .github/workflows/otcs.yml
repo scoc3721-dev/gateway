@@ -1,0 +1,42 @@
+name: OTCS Auth Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: "OTCS Username"
+        required: true
+        default: "admin"
+      password:
+        description: "OTCS Password"
+        required: true
+      otcs_url:
+        description: "OTCS Base URL"
+        required: true
+        default: "http://localhost"
+
+jobs:
+  get-ticket:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Call OTCS Auth API
+        id: auth
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ inputs.otcs_url }}/otcs/cs.exe/api/v1/auth" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "username=${{ inputs.username }}&password=${{ inputs.password }}")
+
+          echo "Response:"
+          echo "$RESPONSE"
+
+          TICKET=$(echo "$RESPONSE" | jq -r '.ticket')
+
+          echo "ticket=$TICKET" >> $GITHUB_OUTPUT
+
+      - name: Print Ticket
+        run: |
+          echo "OTCS Ticket: ${{ steps.auth.outputs.ticket }}"
